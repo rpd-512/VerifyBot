@@ -11,22 +11,33 @@ import os
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+JSONBIN_API_KEY = os.getenv("JSONBIN_API")
 
 REDIRECT_URI = "https://verifybot-e7ia.onrender.com/callback"
 TOKEN_URL = "https://discord.com/api/oauth2/token"
 USER_URL = "https://discord.com/api/users/@me"
 
+BIN_ID = "67c086baacd3cb34a8f20ec4"  # Replace with your Bin ID
+HEADERS = {
+    "X-Master-Key": JSONBIN_API_KEY,
+    "Content-Type": "application/json"
+}
+
 app = Flask(__name__)
 
-# Function to load verified users
+# Function to load verified users from JSONBin
 def load_verified_users():
+    url = f"https://api.jsonbin.io/v3/b/{BIN_ID}/latest"
+    
     try:
-        with open("verified_users.json", "r") as file:
-            data = json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {"servers": {}}
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()
+        data = response.json().get("record", {})
+    except (requests.RequestException, ValueError):
+        data = {"servers": {}}  # Default structure if fetch fails
 
-    for server_id in data["servers"]:
+    # Ensure correct structure
+    for server_id in data.get("servers", {}):
         if "verified_users" not in data["servers"][server_id]:
             data["servers"][server_id]["verified_users"] = []
         if "tokens" not in data["servers"][server_id]:
@@ -34,10 +45,17 @@ def load_verified_users():
 
     return data
 
-# Function to save verified users
+# Function to save verified users to JSONBin
 def save_verified_users(data):
-    with open("verified_users.json", "w") as file:
-        json.dump(data, file, indent=4)
+    url = f"https://api.jsonbin.io/v3/b/{BIN_ID}"
+    
+    try:
+        response = requests.put(url, json=data, headers=HEADERS)
+        response.raise_for_status()
+        print("✅ JSON updated successfully!")
+    except requests.RequestException as e:
+        print("❌ Error updating JSON:", e)
+
 
 # OAuth2 Callback Route
 @app.route("/callback")
@@ -119,29 +137,6 @@ def add_user_to_guild(user_id, access_token, server_id):
         return f"⚠️ {user_id} was already in the server."
     else:
         return f"❌ Failed to add {user_id}: {response_json}"
-
-def load_verified_users():
-    try:
-        with open("verified_users.json", "r") as file:
-            data = json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {"servers": {}}
-
-    # Ensure the structure is correct
-    for server_id in data["servers"]:
-        if "verified_users" not in data["servers"][server_id]:
-            data["servers"][server_id]["verified_users"] = []
-        if "tokens" not in data["servers"][server_id]:  # ✅ Ensure tokens field exists
-            data["servers"][server_id]["tokens"] = {}
-
-    return data
-
-
-def save_verified_users(data):
-    with open("verified_users.json", "w") as file:
-        json.dump(data, file, indent=4)
-
-
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="/", intents=intents)
