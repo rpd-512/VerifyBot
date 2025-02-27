@@ -98,9 +98,6 @@ def run_flask():
     app.run(host="0.0.0.0",port=port)
 
 
-
-REDIRECT_URI = "http://localhost:5000/callback"
-
 def add_user_to_guild(user_id, access_token, server_id):
     url = f"https://discord.com/api/guilds/{server_id}/members/{user_id}"
     headers = {
