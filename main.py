@@ -211,7 +211,7 @@ async def about(interaction: discord.Interaction):
         "**`/verify`** - Sends the verification link.\n"
         "**`/join [server_id]`** - Adds verified users to another server.\n"
         "**`/list`** - Lists all verified users in the server.\n"
-        "**`/about`** - Shows information about the bot."
+        "**`/about`** - Shows information about the bot.\n"
         "**`CREATED BY`** - RPD-512, as a part of a fiverr deal [not yet paid for]"
     ), inline=False)
 
