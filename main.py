@@ -192,17 +192,24 @@ async def assign_verified_role(server_id, user_id):
         print(f"❌ User {user_id} not found in guild {server_id}!")
         return
 
-    role_name = "Members"
-    role = discord.utils.get(guild.roles, name=role_name)
+    verified_role_name = "Members"
+    unverified_role_name = "Unverified"
 
-    # If role doesn't exist, create it
-    if role is None:
-        role = await guild.create_role(name=role_name, colour=discord.Colour.blue())
+    verified_role = discord.utils.get(guild.roles, name=verified_role_name)
+    unverified_role = discord.utils.get(guild.roles, name=unverified_role_name)
 
-    # Assign the role
-    await member.add_roles(role)
-    print(f"✅ Assigned role '{role.name}' to {member.display_name}!")
+    # If the verified role doesn't exist, create it
+    if verified_role is None:
+        verified_role = await guild.create_role(name=verified_role_name, colour=discord.Colour.blue())
 
+    # Assign the verified role
+    await member.add_roles(verified_role)
+    print(f"✅ Assigned role '{verified_role.name}' to {member.display_name}!")
+
+    # Remove the unverified role if it exists
+    if unverified_role in member.roles:
+        await member.remove_roles(unverified_role)
+        print(f"❌ Removed '{unverified_role.name}' role from {member.display_name}!")
 
 @tree_bot_1.command(name="verify", description="Sends the verification link.")
 async def verify(interaction: discord.Interaction):
