@@ -10,24 +10,24 @@ import json
 import time
 import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+BOT_TOKEN_1 = os.getenv("BOT_TOKEN")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-JSONBIN_API_KEY = os.getenv("JSONBIN_API")
+JSON_BIN_API_KEY = os.getenv("JSON_BIN_API")
 REDIRECT_URI = os.getenv("SITE_URL")+"/callback"
+BIN_ID = os.getenv("JSON_BIN_ID")
+
 
 TOKEN_URL = "https://discord.com/api/oauth2/token"
 USER_URL = "https://discord.com/api/users/@me"
 
-BIN_ID = "67c086baacd3cb34a8f20ec4"  # Replace with your Bin ID
-HEADERS = {
-    "X-Master-Key": JSONBIN_API_KEY,
-    "Content-Type": "application/json"
-}
-
-app = Flask(__name__)
-
-#---------------------------------------------------------------------------------------#
+#-------------------------------Inactivity-Management-----------------------------------#
 # URL to send requests to
 # Function to send the request
 def send_request():
@@ -76,6 +76,15 @@ def save_verified_users(data):
         print("❌ Error updating JSON:", e)
 
 
+
+#------------------------------Flask-Implementation-------------------------------------------#
+
+HEADERS = {
+    "X-Master-Key": JSON_BIN_API_KEY,
+    "Content-Type": "application/json"
+}
+
+app = Flask(__name__)
 # OAuth2 Callback Route
 @app.route("/callback")
 def callback():
@@ -126,6 +135,8 @@ def callback():
     save_verified_users(data)
 
     print(f"✅ Verified {user_id} in server {server_id} and stored token.")
+    bot1.loop.create_task(assign_verified_role(server_id, user_id))
+
 
     return render_template("callback.html", user_id=user_id, server_id=server_id)
 
@@ -134,11 +145,13 @@ def run_flask():
     port = int(os.environ.get("PORT",4000))
     app.run(host="0.0.0.0",port=port)
 
+#---------------------------------------------------------------------------------------#
+
 
 def add_user_to_guild(user_id, access_token, server_id):
     url = f"https://discord.com/api/guilds/{server_id}/members/{user_id}"
     headers = {
-        "Authorization": f"Bot {BOT_TOKEN}",
+        "Authorization": f"Bot {BOT_TOKEN_1}",
         "Content-Type": "application/json"
     }
     data = {"access_token": access_token}
@@ -157,11 +170,39 @@ def add_user_to_guild(user_id, access_token, server_id):
     else:
         return f"❌ Failed to add {user_id}: {response_json}"
 
-intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="/", intents=intents)
-tree = bot.tree  # For application commands
 
-@tree.command(name="verify", description="Sends the verification link.")
+
+intents1 = discord.Intents.default()
+intents1.members = True  # Allows fetching users
+intents1.guilds = True    # Required for server-related actions
+
+bot1 = commands.Bot(command_prefix="/", intents=intents1)
+tree_bot_1 = bot1.tree  # For application commands
+
+async def assign_verified_role(server_id, user_id):
+    guild = bot1.get_guild(int(server_id))  # Fetch the guild (server)
+    if not guild:
+        print(f"❌ Guild {server_id} not found!")
+        return
+    
+    member = guild.get_member(int(user_id))  # Fetch the user in the server
+    if not member:
+        print(f"❌ User {user_id} not found in guild {server_id}!")
+        return
+
+    role_name = "member"
+    role = discord.utils.get(guild.roles, name=role_name)
+
+    # If role doesn't exist, create it
+    if role is None:
+        role = await guild.create_role(name=role_name, colour=discord.Colour.blue())
+
+    # Assign the role
+    await member.add_roles(role)
+    print(f"✅ Assigned role '{role.name}' to {member.display_name}!")
+
+
+@tree_bot_1.command(name="verify", description="Sends the verification link.")
 async def verify(interaction: discord.Interaction):
     server_id = str(interaction.guild.id)
     auth_url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&scope=identify%20guilds.join&redirect_uri={REDIRECT_URI}&state={server_id}"
@@ -175,7 +216,7 @@ async def verify(interaction: discord.Interaction):
     # Send the button as a response
     await interaction.response.send_message("Click the button below to verify:", view=VerifyButton(), ephemeral=True)
 
-@tree.command(name="join", description="Adds all verified users of this server to another server.")
+@tree_bot_1.command(name="join", description="Adds all verified users of this server to another server.")
 async def join(interaction: discord.Interaction, server_id: str):
     server_owner_id = interaction.guild.owner_id  # Get owner ID of the current server
     user_id = interaction.user.id  # The ID of the user who ran the command
@@ -213,7 +254,7 @@ async def join(interaction: discord.Interaction, server_id: str):
     # Send summary message
     await interaction.response.send_message("\n".join(results), ephemeral=True)
 
-@tree.command(name="about", description="Displays bot info.")
+@tree_bot_1.command(name="about", description="Displays bot info.")
 async def about(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🤖 Bot Information",
@@ -233,7 +274,7 @@ async def about(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-@tree.command(name="list", description="Lists verified users in the current server.")
+@tree_bot_1.command(name="list", description="Lists verified users in the current server.")
 async def list_users(interaction: discord.Interaction):
     server_id = str(interaction.guild.id)
     data = load_verified_users()
@@ -260,10 +301,13 @@ async def list_users(interaction: discord.Interaction):
 
 
 
-@bot.event
+@bot1.event
 async def on_ready():
-    await tree.sync()
-    print(f"✅ Logged in as {bot.user}")
+    await tree_bot_1.sync()
+    print(f"✅ Logged in as {bot1.user}")
+
+def run_bot_1():
+    bot1.run(BOT_TOKEN_1)
 
 flask_thread = threading.Thread(target=run_flask, daemon=True)
 flask_thread.start()
@@ -271,4 +315,7 @@ flask_thread.start()
 activity_thread = threading.Thread(target=keep_active, daemon=True)
 activity_thread.start()
 
-bot.run(BOT_TOKEN)
+#bot1_thread = threading.Thread(target=run_bot_1, daemon=True)
+#bot1_thread.start()
+
+run_bot_1()
