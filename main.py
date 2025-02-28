@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify, redirect, render_template
 from discord.ui import View, Button
 from discord import app_commands
 from discord.ext import commands
+from random import randint
 import threading
 import requests
 import discord
 import json
+import time
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -13,7 +15,7 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 JSONBIN_API_KEY = os.getenv("JSONBIN_API")
 
-REDIRECT_URI = "https://verifybot-e7ia.onrender.com/callback"
+REDIRECT_URI = os.getenv("SITE_URL")+"/callback"
 TOKEN_URL = "https://discord.com/api/oauth2/token"
 USER_URL = "https://discord.com/api/users/@me"
 
@@ -24,6 +26,23 @@ HEADERS = {
 }
 
 app = Flask(__name__)
+
+#---------------------------------------------------------------------------------------#
+# URL to send requests to
+# Function to send the request
+def send_request():
+    try:
+        response = requests.get(REDIRECT_URI)
+        print(randint(10000,99999),"Response Code:", response.status_code)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# Loop to send request every few seconds
+def keep_active():
+    while True:
+        send_request()
+        time.sleep(randint(0,20))
+#---------------------------------------------------------------------------------------#
 
 # Function to load verified users from JSONBin
 def load_verified_users():
@@ -248,5 +267,8 @@ async def on_ready():
 
 flask_thread = threading.Thread(target=run_flask, daemon=True)
 flask_thread.start()
+
+activity_thread = threading.Thread(target=keep_active, daemon=True)
+activity_thread.start()
 
 bot.run(BOT_TOKEN)
