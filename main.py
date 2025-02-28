@@ -192,7 +192,7 @@ async def assign_verified_role(server_id, user_id):
         print(f"❌ User {user_id} not found in guild {server_id}!")
         return
 
-    role_name = "members"
+    role_name = "Members"
     role = discord.utils.get(guild.roles, name=role_name)
 
     # If role doesn't exist, create it
