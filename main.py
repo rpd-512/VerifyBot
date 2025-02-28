@@ -135,7 +135,9 @@ def callback():
     save_verified_users(data)
 
     print(f"✅ Verified {user_id} in server {server_id} and stored token.")
-    bot1.loop.create_task(assign_verified_role(server_id, user_id))
+    
+    #payment block
+    #bot1.loop.create_task(assign_verified_role(server_id, user_id))
 
 
     return render_template("callback.html", user_id=user_id, server_id=server_id)
