@@ -14,8 +14,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 JSONBIN_API_KEY = os.getenv("JSONBIN_API")
-
 REDIRECT_URI = os.getenv("SITE_URL")+"/callback"
+
 TOKEN_URL = "https://discord.com/api/oauth2/token"
 USER_URL = "https://discord.com/api/users/@me"
 
