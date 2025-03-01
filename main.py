@@ -290,7 +290,7 @@ async def list_users(interaction: discord.Interaction):
 
     if server_id in data["servers"] and data["servers"][server_id]["verified_users"]:
         verified_users = data["servers"][server_id]["verified_users"]
-        user_list = "\n".join([f"- <@{uid}> (`{uid}`)" for uid in verified_users])
+        user_list = "\n".join([f"- <@{uid}>" for uid in verified_users])
 
         embed = discord.Embed(
             title="✅ Verified Users",
